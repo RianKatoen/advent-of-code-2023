@@ -34,14 +34,13 @@ def part2(file: str):
     round = {c:1 for c in range(n_cards)}
 
     no_round = 1
-    while len(round.keys()) > 0:
-        print(no_round)
+    while not all(c == 0 for c in round.values()):
         new_round = {c:0 for c in range(n_cards)}
-        for card in round:
+        for card, no in round.items():
             new_cards = scores[card]
             for new_card in new_cards:
-                cards[new_card] += 1
-                new_round[new_card] += 1
+                cards[new_card] += no
+                new_round[new_card] += no
 
         round = new_round
         no_round+=1
