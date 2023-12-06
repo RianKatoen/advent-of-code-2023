@@ -30,4 +30,14 @@ def part1(games: list[tuple[int, int]]):
 print("example 1:", part1(input("example1.txt")))
 print("part 1:", part1(input("input.txt")))
 
-def part2()
+def part2(games: list[tuple[int, int]]):
+    time = ""
+    distance = ""
+    for t, d in games:
+        time += f"{t}"
+        distance += f"{d}"
+    
+    return(part1([(int(time), int(distance))]))
+
+print("example 2:", part2(input("example1.txt")))
+print("part 2:", part2(input("input.txt")))
