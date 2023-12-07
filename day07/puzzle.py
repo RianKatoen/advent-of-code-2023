@@ -38,6 +38,9 @@ class Hand(IntEnum):
 
 def determine_hand(cards_sorted: list[int]):
     hands = []
+    if len(cards_sorted) == 0:
+        return (Hand.NONE, hands)
+    
     hand_value, hand = cards_sorted[0], Hand.HIGH_CARD
     for card in cards_sorted[1:]:
         if card == hand_value:
@@ -76,3 +79,46 @@ def part1(file: str) -> int:
 
 print("example 1:", part1("example1.txt"))
 print("part 1:", part1("input.txt"))
+
+def part2(file: str) -> int:
+    games = input(file)
+    games = [(bid, [c if c != 11 else 1 for c in cards], [c for c in cards_sorted if c != 11], cards.count(11)) for bid, cards, cards_sorted in games]
+
+    hands = []
+    for bid, cards, cards_sorted, n_jokers in games:
+        hand, _ = determine_hand(cards_sorted)
+        if n_jokers == 0:
+            hands.append((hand, bid, cards))
+        elif n_jokers == 5:
+            hands.append((Hand.FIVE_OF_A_KIND, bid, cards))
+        elif n_jokers == 4:
+            hands.append((Hand.FIVE_OF_A_KIND, bid, cards))
+        elif n_jokers == 3:
+            if hand == Hand.ONE_PAIR:
+                hands.append((Hand.FIVE_OF_A_KIND, bid, cards))
+            else:
+                hands.append((Hand.FOUR_OF_A_KIND, bid, cards))
+        elif n_jokers == 2:
+            if hand == Hand.THREE_OF_A_KIND:
+                hands.append((Hand.FIVE_OF_A_KIND, bid, cards))
+            elif hand == Hand.ONE_PAIR:
+                hands.append((Hand.FOUR_OF_A_KIND, bid, cards))
+            else:
+                hands.append((Hand.THREE_OF_A_KIND, bid, cards))
+        elif n_jokers == 1:
+            if hand == Hand.FOUR_OF_A_KIND:
+                hands.append((Hand.FIVE_OF_A_KIND, bid, cards))
+            elif hand == Hand.THREE_OF_A_KIND:
+                hands.append((Hand.FOUR_OF_A_KIND, bid, cards))
+            elif hand == Hand.TWO_PAIR:
+                hands.append((Hand.FULL_HOUSE, bid, cards))
+            elif hand == Hand.ONE_PAIR:
+                hands.append((Hand.THREE_OF_A_KIND, bid, cards))
+            else:
+                hands.append((Hand.ONE_PAIR, bid, cards))
+    
+    hands.sort(key = lambda h: (h[0], h[2][0], h[2][1], h[2][2], h[2][3], h[2][4]))
+    return(sum([(i + 1) * bid for i, (_, bid, _) in zip(range(len(hands)), hands)]))
+
+print("example 2:", part2("example1.txt"))
+print("part 2:", part2("input.txt"))
