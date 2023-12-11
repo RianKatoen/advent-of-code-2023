@@ -149,34 +149,19 @@ def turn_right(start: tuple[int, int], dest: tuple[int, int], pipes: list[str]) 
             return [(i2, j2 - 1)]
         else:
             return [(i2, j2 + 1)]
-        
-    elif pipes[i2][j2] == 'L' and i1 < i2:
-        return [(i2, j2 - 1), (i2 + 1, j2)]
-    elif pipes[i2][j2] == 'J' and j1 < j2:
-        return [(i2 + 1, j2), (i2, j2 + 1)]
+
+    # L is a 90-degree bend connecting north and east.
+    elif pipes[i2][j2] == 'L' and i2 > i1:
+        return [(i2, j2 - 1), (i2 + 1, j2), (i2 + 1, j2 + 1)]
+    # J is a 90-degree bend connecting north and west.
+    elif pipes[i2][j2] == 'J' and j2 > j1:
+        return [(i2 + 1, j2), (i2, j2 + 1), (i2 + 1, j2 + 1)]
+    # 7 is a 90-degree bend connecting south and west.
     elif pipes[i2][j2] == '7' and i2 < i1:
-        return [(i2 - 1, j2), (i2, j2 + 1)]
+        return [(i2 - 1, j2), (i2, j2 + 1), (i2 - 1, j2 + 1)]
+    # F is a 90-degree bend connecting south and east.
     elif pipes[i2][j2] == 'F' and j2 < j1: 
-        return [(i2 - 1, j2), (i2, j2 - 1)]
-    else:
-        return []
-
-def turn_left(start: tuple[int, int], dest: tuple[int, int], pipes: list[str]) -> list[tuple[int, int]]:
-    i1, j1 = start
-    i2, j2 = dest
-    
-    i = i2 - i1
-    j = j2 - j1
-
-    if pipes[i2][j2] == '-' or pipes[i2][j2] == '|':
-        if i == 0 and j == 1:
-            return [(i2 - 1, j2)]
-        elif i == 1 and j == 0:
-            return [(i2, j2 + 1)]
-        elif i == 0 and j == -1:
-            return [(i2 + 1, j2)]
-        elif i == -1 and j == 0:
-            return [(i2, j2 - 1)]
+        return [(i2 - 1, j2), (i2, j2 - 1), (i2 - 1, j2 - 1)]
     else:
         return []
 
@@ -189,16 +174,21 @@ def traverse(file: str, verbosity: int = 0) -> int:
     destinations = find_start(start, pipes)
 
     n_rows, n_cols = len(pipes), len(pipes[0])
+    for i in range(n_rows):
+        for j in range(n_cols):
+            if pipes[i][j] != 'S':
+                pipes[i].replace('S', '-')
+
     if verbosity > 0:
         print(file, " [starting position] ", start)
         print(file, " [destinations] ", destinations)
     
+    all_n_tiles = []
     all_tiles = []
     for destination in destinations:
-        path = set()
-        path.add(start)
-        tiles = set()
-    
+        path = []
+        path.append(start)
+
         i1, j1 = start
         i2, j2 = destination
         if verbosity > 1:
@@ -206,26 +196,35 @@ def traverse(file: str, verbosity: int = 0) -> int:
             print(file, " [right_track] ", pipes[start[0]][start[1]], start, "->", pipes[destination[0]][destination[1]], destination)
 
         while destination != start:
-            path.add(destination)
+            path.append(destination)
             i2, j2 = destination
-            turns = turn_right((i1, j1), (i2, j2), pipes)
-            for i3, j3 in turns:
-                if (i3 < 0 or j3 < 0) and pipes[i2][j2] != '-' and pipes[i2][j2] != '|':
-                    tiles = set()
-                    break
-                elif i3 >= 0 and j3 >= 0 and i3 < n_rows and j3 < n_cols:
-                    if verbosity > 1:
-                        print(file, " [turn] ", (i3, j3))
-                    tiles.add((i3, j3))
-
             destination = move((i1, j1), (i2, j2), pipes)
 
             i1, j1 = i2, j2
             if verbosity > 1:
                 print(file, " [next_destination] ", pipes[i1][j1], (i1, j1), "->", pipes[destination[0]][destination[1]], destination)
 
+        tiles = set()
+        any_out_of_bounds = False
+        i1, j1 = path[-1]
+        for i2, j2 in path:
+            turns = turn_right((i1, j1), (i2, j2), pipes)
+            i1, j1 = i2, j2
+            for i3, j3 in turns:
+                if i3 >= 0 and j3 >= 0 and i3 < n_rows and j3 < n_cols:                    
+                    if verbosity > 1:
+                        print(file, " [turn] ", (i3, j3))
+                    tiles.add((i3, j3))
+                else:
+                    any_out_of_bounds = True
+        
+        if any_out_of_bounds:
+            tiles = set()
+            continue
+
+        path = set(path)
         for i, j in [t for t in tiles]:
-            if (i < 0 or j < 1) or (i, j) in path:
+            if (i, j) in path:
                 tiles.remove((i, j))
 
         if verbosity > 1:
@@ -235,44 +234,39 @@ def traverse(file: str, verbosity: int = 0) -> int:
         if len(tiles) > 0:
             all_tiles.append(tiles)
 
-    max_path = min([len(tiles) for tiles in all_tiles])
-    max_all_tiles = [len(tiles) for tiles in all_tiles].index(max_path)
-    best_tiles = all_tiles[max_all_tiles]
-    
-    new_maps = []
-    for i in range(n_rows):
-        row = ""
-        for j in range(n_cols):
-            if (i, j) in path:
-                row = row + "0"
-            elif (i, j) in best_tiles:
-                row = row + "+"
-            else:
-                row = row + pipes[i][j]
-        
-        new_maps.append(row)
+        new_maps = []
+        for i in range(n_rows):
+            row = ""
+            for j in range(n_cols):
+                if (i, j) in path and pipes[i][j] != 'S':
+                    row = row + "0"
+                elif (i, j) in tiles:
+                    row = row + "+"
+                else:
+                    row = row + pipes[i][j]
+            
+            new_maps.append(row)
+            if verbosity == -1:
+                print(row)
+
         if verbosity == -1:
-            print(row)
-    
-    pattern = re.compile(r'\+([|,F,J,\-,7,L,\.]+)\+')
-    for row in new_maps:
-        search = pattern.search(row)
-        if search:
-            max_path += len(search.group(1))
+            print("")
 
-    pattern = re.compile(r'[0]([|,F,J,\-,7,L,\.]+)[0]')
-    for row in new_maps:
-        search = pattern.search(row)
-        if search:
-            max_path += len(search.group(1))
+        n_tiles = len(tiles)
+        pattern = re.compile(r'\+([|,F,J,\-,7,L,\.]+)\+')
+        for row in new_maps:
+            for r in pattern.findall(row):
+                n_tiles += len(r)
 
-    return max_path, [len(tiles) for tiles in all_tiles]
-    
-    
+        all_n_tiles.append(n_tiles)
+        
+    return [len(tiles) for tiles in all_tiles], all_n_tiles
+
 print("example 1:", part2(f"example1.txt", 0))
 print("example 3:", part2(f"example3.txt", 0))
 print("example 4:", part2(f"example4.txt", 0))
 print("example 5:", part2(f"example5.txt", 0))
 print("example 6:", part2(f"example6.txt", 0))
 print("example 7:", part2(f"example7.txt", 0))
-print("part 2:", part2(f"input.txt", -1))
+print("custom 1:", part2(f"custom1.txt", 0))
+print("part 2:", part2(f"input.txt", 0))
