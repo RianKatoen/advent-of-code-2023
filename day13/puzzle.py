@@ -44,3 +44,36 @@ def part1(file: str) -> int:
 
 print("example 1:", part1("example1.txt"))
 print("part 1:", part1("input.txt"))
+print("")
+
+def part2(file: str) -> int:
+    total_score = 0
+    for n_rows, n_cols, rock_formation in input(file):
+        offset = 100
+        pattern_mismatches = set()
+
+        for _ in range(2):
+            for row in range(1, n_rows):
+                misses, off_by_one = [], []
+                length = min(row, n_rows - row)
+
+                for i, e1, e2 in zip(range(row - length, row), rock_formation[(row - length):row], rock_formation[row:(row + length)][::-1]):
+                    n_misses = [j for j, ee1, ee2 in zip(range(n_cols), e1, e2) if ee1 != ee2]
+                    if len(n_misses) == 1:
+                        off_by_one.append((n_misses[0], i) if offset == 100 else (i, n_misses[0]))
+                    if len(n_misses) > 1:
+                        misses.append((row - 1, i) if offset == 100 else (i, row - 1))
+
+                if len(off_by_one) == 1 and len(misses) == 0:
+                    pattern_mismatches.add((offset, row, ((row if offset == 100 else 0, row if offset == 1 else 0), off_by_one[0])))
+            
+            n_rows, n_cols, rock_formation = transpose(rock_formation)
+            offset = 1
+
+        for p in pattern_mismatches:
+            total_score += p[0] * p[1]
+        
+    return total_score
+
+print("example 1:", part2("example1.txt"))
+print("part 1:", part2("input.txt"))
